@@ -30,6 +30,44 @@ void con_force_split_parents_redraw(Con *con) {
     }
 }
 
+void handle_close_button(Con *con, xcb_button_press_event_t *ev) {
+  DLOG("Zamykanie okna przyciskiem - %s\n", con->name);
+  con_close(con,KILL_WINDOW);
+}
+
+void handle_hide_button(Con *con, xcb_button_press_event_t *ev) {
+  DLOG("Chowanie okna przyciskiem %s\n", con->name);
+  Con *next = con_next_focused(con);
+  scratchpad_move(con);
+  con_activate(next);
+}
+
+void handle_float_button(Con *con, xcb_button_press_event_t *ev) {
+  DLOG("Floating okna przyciskiem %s\n", con->name);
+  toggle_floating_mode(con,true);
+  con_activate(con);
+}
+
+// nie powinienem tutaj brać pod uwagę paddingu?
+
+void init_button_rect(Con *con, Rect *rect) {
+  int pad = logical_px(2);
+  int sign = (config.title_align == ALIGN_RIGHT) ? 1 : -1;
+  Rect *deco = &(con->deco_rect);
+  int size = deco->height - 2 * pad;
+  rect->x = (sign == 1) ? deco->x + pad : deco->x + deco->width - size - pad;
+  rect->y = deco->y + pad;
+  rect->width = size;
+  rect->height = size;
+}
+
+void advance_button_rect(Rect *rect) {
+  int pad = logical_px(2);
+  int sign = (config.title_align == ALIGN_RIGHT) ? 1 : -1;
+  rect->x += sign * (rect->width + pad);
+}
+
+
 /*
  * Create a new container (and attach it to the given parent, if not NULL).
  * This function only initializes the data structures.
@@ -56,6 +94,24 @@ Con *con_new_skeleton(Con *parent, i3Window *window) {
     TAILQ_INIT(&(new->focus_head));
     TAILQ_INIT(&(new->swallow_head));
     TAILQ_INIT(&(new->marks_head));
+
+    button_t *btn;
+    TAILQ_INIT(&(new->buttons_head));
+    
+    btn = scalloc(1, sizeof(button_t));
+    btn->text = i3string_from_utf8("×");
+    btn->action = handle_close_button;
+    TAILQ_INSERT_TAIL(&(new->buttons_head), btn, buttons);
+    
+    btn = scalloc(1, sizeof(button_t));
+    btn->text = i3string_from_utf8("¬");
+    btn->action = handle_hide_button;
+    TAILQ_INSERT_TAIL(&(new->buttons_head), btn, buttons);
+    
+    btn = scalloc(1, sizeof(button_t));
+    btn->text = i3string_from_utf8("≈");
+    btn->action = handle_float_button;
+    TAILQ_INSERT_TAIL(&(new->buttons_head), btn, buttons);
 
     if (parent != NULL) {
         con_attach(new, parent, false);
@@ -92,6 +148,12 @@ void con_free(Con *con) {
         TAILQ_REMOVE(&(con->marks_head), mark, marks);
         FREE(mark->name);
         FREE(mark);
+    }
+    while (!TAILQ_EMPTY(&(con->buttons_head))) {
+        button_t *btn = TAILQ_FIRST(&(con->buttons_head));
+        TAILQ_REMOVE(&(con->buttons_head), btn, buttons);
+        I3STRING_FREE(btn->text);
+        FREE(btn);
     }
     DLOG("con %p freed\n", con);
     free(con);

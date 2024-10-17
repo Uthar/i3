@@ -161,6 +161,21 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
     tree_render();
 }
 
+static bool handle_buttons(Con *con, xcb_button_press_event_t *event) {
+  Rect rect;
+  button_t *btn;
+  init_button_rect(con, &rect);
+  TAILQ_FOREACH (btn, &(con->buttons_head), buttons) {
+    DLOG("ev %d,%d / btn %d,%d\n",event->event_x,event->event_y,rect.x,rect.y);
+    if (rect_contains(rect, event->event_x, event->event_y)) {
+      btn->action(con,event);
+      return true;
+    }
+    advance_button_rect(&rect);
+  }
+  return false;
+}
+
 /*
  * Being called by handle_button_press, this function calls the appropriate
  * functions for resizing/dragging.
@@ -222,12 +237,19 @@ static void route_click(Con *con, xcb_button_press_event_t *event, const click_d
     const bool in_stacked = (con->parent->layout == L_STACKED || con->parent->layout == L_TABBED);
     const bool was_focused = focused == con;
     const bool is_left_click = (event->detail == XCB_BUTTON_CLICK_LEFT);
+    const bool is_middle_click = (event->detail == XCB_BUTTON_CLICK_MIDDLE);
     const bool is_right_click = (event->detail == XCB_BUTTON_CLICK_RIGHT);
     const bool is_left_or_right_click = (is_left_click || is_right_click);
     const bool is_scroll = (event->detail == XCB_BUTTON_SCROLL_UP ||
                             event->detail == XCB_BUTTON_SCROLL_DOWN ||
                             event->detail == XCB_BUTTON_SCROLL_LEFT ||
                             event->detail == XCB_BUTTON_SCROLL_RIGHT);
+
+    /* 0. handle utility button clicks */
+    if (is_middle_click && dest == CLICK_DECORATION && handle_buttons(con,event)) {
+      allow_replay_pointer(event->time);
+      return;
+    }
 
     /* 1: see if the user scrolled on the decoration of a stacked/tabbed con */
     if (in_stacked && dest == CLICK_DECORATION && is_scroll) {
