@@ -30,6 +30,29 @@ void con_force_split_parents_redraw(Con *con) {
     }
 }
 
+void handle_close_button(Con *con, xcb_button_press_event_t *ev) {
+  DLOG("Zamykanie okna przyciskiem - %s\n", con->name);
+  if (ev->response_type == XCB_BUTTON_RELEASE) {
+    con_close(con,KILL_WINDOW);
+  }
+}
+
+void handle_hide_button(Con *con, xcb_button_press_event_t *ev) {
+  DLOG("Chowanie okna przyciskiem %s\n", con->name);
+  if (ev->response_type == XCB_BUTTON_RELEASE) {
+    scratchpad_move(con);
+    tree_render();
+  }
+}
+
+void handle_float_button(Con *con, xcb_button_press_event_t *ev) {
+  DLOG("Floating okna przyciskiem %s\n", con->name);
+  if (ev->response_type == XCB_BUTTON_RELEASE) {
+    toggle_floating_mode(con,true);
+    tree_render();
+  }
+}
+
 /*
  * Create a new container (and attach it to the given parent, if not NULL).
  * This function only initializes the data structures.
@@ -56,6 +79,24 @@ Con *con_new_skeleton(Con *parent, i3Window *window) {
     TAILQ_INIT(&(new->focus_head));
     TAILQ_INIT(&(new->swallow_head));
     TAILQ_INIT(&(new->marks_head));
+
+    button_t *btn;
+    TAILQ_INIT(&(new->buttons_head));
+    
+    btn = scalloc(1, sizeof(button_t));
+    btn->text = sstrdup("x");
+    btn->action = handle_close_button;
+    TAILQ_INSERT_TAIL(&(new->buttons_head), btn, buttons);
+    
+    btn = scalloc(1, sizeof(button_t));
+    btn->text = sstrdup("-");
+    btn->action = handle_hide_button;
+    TAILQ_INSERT_TAIL(&(new->buttons_head), btn, buttons);
+    
+    btn = scalloc(1, sizeof(button_t));
+    btn->text = sstrdup("~");
+    btn->action = handle_float_button;
+    TAILQ_INSERT_TAIL(&(new->buttons_head), btn, buttons);
 
     if (parent != NULL) {
         con_attach(new, parent, false);
@@ -92,6 +133,12 @@ void con_free(Con *con) {
         TAILQ_REMOVE(&(con->marks_head), mark, marks);
         FREE(mark->name);
         FREE(mark);
+    }
+    while (!TAILQ_EMPTY(&(con->buttons_head))) {
+        button_t *btn = TAILQ_FIRST(&(con->buttons_head));
+        TAILQ_REMOVE(&(con->buttons_head), btn, buttons);
+        FREE(btn->text);
+        FREE(btn);
     }
     DLOG("con %p freed\n", con);
     free(con);

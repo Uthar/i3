@@ -211,6 +211,10 @@ struct Config {
      * decoration. Marks starting with a "_" will be ignored either way. */
     bool show_marks;
 
+    /** Specifies whether or not utility buttons should be displayed in the
+        window deco bar */
+    bool show_buttons;
+
     /** Title alignment options. */
     enum {
         ALIGN_LEFT,

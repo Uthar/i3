@@ -645,6 +645,38 @@ void x_draw_decoration(Con *con) {
     const int deco_width = (int)con->deco_rect.width;
     const int title_padding = logical_px(2);
 
+    /* Draw the utility buttons */
+    int buttons_width = 0;
+    if (config.show_buttons && !TAILQ_EMPTY(&(con->buttons_head))) {
+        int btn_size = con->deco_rect.height - 2 * title_padding;
+        int sign = (config.title_align == ALIGN_RIGHT) ? 1 : -1;
+        int btn_offset_x = (sign == 1) ? -btn_size : deco_width;
+        
+        button_t *btn;
+        TAILQ_FOREACH (btn, &(con->buttons_head), buttons) {
+          btn_offset_x += sign * (btn_size + title_padding);
+          draw_util_rectangle(dest_surface, p->color->border,
+                              con->deco_rect.x + btn_offset_x,
+                              con->deco_rect.y + title_padding,
+                              btn_size, btn_size);
+          draw_util_rectangle(dest_surface, p->color->background,
+                              con->deco_rect.x + btn_offset_x + 1,
+                              con->deco_rect.y + title_padding + 1,
+                              btn_size - 2, btn_size - 2);
+          
+          i3String *text = i3string_from_utf8(btn->text);
+          int text_width = predict_text_width(text);
+          draw_util_text(text, dest_surface,
+                         p->color->text, p->color->background,
+                         0 + con->deco_rect.x + btn_offset_x + 1
+                           + (btn_size - 2 - MIN(btn_size - 2, text_width)) / 2,
+                         con->deco_rect.y + 2,
+                         btn_size);
+          I3STRING_FREE(text);
+          buttons_width += btn_size + title_padding;
+        }
+    }
+
     int mark_width = 0;
     if (config.show_marks && !TAILQ_EMPTY(&(con->marks_head))) {
         char *formatted_mark = sstrdup("");
@@ -668,8 +700,8 @@ void x_draw_decoration(Con *con) {
             mark_width = predict_text_width(mark);
 
             int mark_offset_x = (config.title_align == ALIGN_RIGHT)
-                                    ? title_padding
-                                    : deco_width - mark_width - title_padding;
+                                    ? title_padding + buttons_width
+                                    : deco_width - buttons_width - mark_width - title_padding ;
 
             draw_util_text(mark, dest_surface,
                            p->color->text, p->color->background,
@@ -732,14 +764,14 @@ void x_draw_decoration(Con *con) {
              * by two the total available area. That's the decoration width
              * minus the elements that come after icon_offset_x (icon, its
              * padding, text, marks). */
-            icon_offset_x = max(icon_padding, (deco_width - icon_padding - icon_size - predict_text_width(title) - title_padding - mark_width) / 2);
+            icon_offset_x = max(icon_padding, (deco_width - icon_padding - icon_size - predict_text_width(title) - title_padding - mark_width - buttons_width) / 2);
             title_offset_x = max(title_padding, icon_offset_x + icon_padding + icon_size);
             break;
         case ALIGN_RIGHT:
             /* [mark + its pad](pad)[    text][(pad)(icon)(pad)](pad)
              *                           ^           ^--- icon_offset_x
              *                           ^--- title_offset_x */
-            title_offset_x = max(title_padding + mark_width, deco_width - title_padding - predict_text_width(title) - total_icon_space);
+            title_offset_x = max(title_padding + mark_width + buttons_width, deco_width - title_padding - predict_text_width(title) - total_icon_space);
             /* Make sure the icon does not escape title boundaries */
             icon_offset_x = min(deco_width - icon_size - icon_padding - title_padding, title_offset_x + predict_text_width(title) + icon_padding);
             break;
@@ -752,7 +784,7 @@ void x_draw_decoration(Con *con) {
                    p->color->text, p->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
-                   deco_width - mark_width - 2 * title_padding - total_icon_space);
+                   deco_width - mark_width - buttons_width - 2 * title_padding - total_icon_space);
     if (has_icon) {
         draw_util_image(
             win->icon,

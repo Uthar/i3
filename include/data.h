@@ -49,6 +49,7 @@ typedef struct Assignment Assignment;
 typedef struct Window i3Window;
 typedef struct gaps_t gaps_t;
 typedef struct mark_t mark_t;
+typedef struct button_t button_t;
 
 /******************************************************************************
  * Helper types
@@ -636,6 +637,13 @@ struct mark_t {
     TAILQ_ENTRY(mark_t) marks;
 };
 
+struct button_t {
+  char *text;
+  void(*action)(Con* con, xcb_button_press_event_t *ev);
+
+  TAILQ_ENTRY(button_t) buttons;
+};
+
 /**
  * A 'Con' represents everything from the X11 root window down to a single X11 window.
  *
@@ -686,6 +694,8 @@ struct Con {
     /* The position and size of the container's decoration. These coordinates
      * are relative to the container's parent's rect. */
     struct Rect deco_rect;
+    /* The utility buttons for this con. to handle specific click events for. */
+    TAILQ_HEAD(buttons_head, button_t) buttons_head;
     /** the geometry this window requested when getting mapped */
     struct Rect geometry;
 
