@@ -648,32 +648,24 @@ void x_draw_decoration(Con *con) {
     /* Draw the utility buttons */
     int buttons_width = 0;
     if (config.show_buttons && !TAILQ_EMPTY(&(con->buttons_head))) {
-        int btn_size = con->deco_rect.height - 2 * title_padding;
-        int sign = (config.title_align == ALIGN_RIGHT) ? 1 : -1;
-        int btn_offset_x = (sign == 1) ? -btn_size : deco_width;
-        
+        Rect rect;
         button_t *btn;
+        int px = logical_px(1);
+        calculate_button_rect(con, &rect);
         TAILQ_FOREACH (btn, &(con->buttons_head), buttons) {
-          btn_offset_x += sign * (btn_size + title_padding);
           draw_util_rectangle(dest_surface, p->color->border,
-                              con->deco_rect.x + btn_offset_x,
-                              con->deco_rect.y + title_padding,
-                              btn_size, btn_size);
+                              rect.x, rect.y,
+                              rect.width, rect.height);
           draw_util_rectangle(dest_surface, p->color->background,
-                              con->deco_rect.x + btn_offset_x + 1,
-                              con->deco_rect.y + title_padding + 1,
-                              btn_size - 2, btn_size - 2);
-          
-          i3String *text = i3string_from_utf8(btn->text);
-          int text_width = predict_text_width(text);
-          draw_util_text(text, dest_surface,
-                         p->color->text, p->color->background,
-                         0 + con->deco_rect.x + btn_offset_x + 1
-                           + (btn_size - 2 - MIN(btn_size - 2, text_width)) / 2,
-                         con->deco_rect.y + 2,
-                         btn_size);
-          I3STRING_FREE(text);
-          buttons_width += btn_size + title_padding;
+                              rect.x + px, rect.y + px,
+                              rect.width - 2*px, rect.height - 2*px);
+          int text_width = predict_text_width(btn->text);
+          draw_util_text(btn->text, dest_surface, p->color->text, p->color->background,
+                         rect.x + (rect.width - MIN(rect.width, text_width)) / 2,
+                         rect.y + (rect.height - MIN(rect.height, config.font.height)) / 2,
+                         rect.width);
+          buttons_width += rect.width + title_padding;
+          next_button(&rect);
         }
     }
 

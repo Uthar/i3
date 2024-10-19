@@ -638,7 +638,7 @@ struct mark_t {
 };
 
 struct button_t {
-  char *text;
+  i3String *text;
   void(*action)(Con* con, xcb_button_press_event_t *ev);
 
   TAILQ_ENTRY(button_t) buttons;
