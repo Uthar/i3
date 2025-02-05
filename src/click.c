@@ -164,14 +164,14 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
 static bool handle_buttons(Con *con, xcb_button_press_event_t *event) {
   Rect rect;
   button_t *btn;
-  calculate_button_rect(con, &rect);
+  init_button_rect(con, &rect);
   TAILQ_FOREACH (btn, &(con->buttons_head), buttons) {
     DLOG("ev %d,%d / btn %d,%d\n",event->event_x,event->event_y,rect.x,rect.y);
     if (rect_contains(rect, event->event_x, event->event_y)) {
       btn->action(con,event);
       return true;
     }
-    next_button(&rect);
+    advance_button_rect(&rect);
   }
   return false;
 }

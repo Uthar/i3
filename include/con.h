@@ -588,5 +588,5 @@ void con_merge_into(Con *old, Con *new);
  */
 bool con_inside_stacked_or_tabbed(Con *con);
 
-void calculate_button_rect(Con *con, Rect *rect);
-void next_button(Rect *rect);
+void init_button_rect(Con *con, Rect *rect);
+void advance_button_rect(Rect *rect);

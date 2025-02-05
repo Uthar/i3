@@ -50,18 +50,18 @@ void handle_float_button(Con *con, xcb_button_press_event_t *ev) {
 
 // nie powinienem tutaj brać pod uwagę paddingu?
 
-void calculate_button_rect(Con *con, Rect *rect) {
-  Rect *deco = &(con->deco_rect);
+void init_button_rect(Con *con, Rect *rect) {
   int pad = logical_px(2);
-  int size = deco->height - 2 * pad;
   int sign = (config.title_align == ALIGN_RIGHT) ? 1 : -1;
+  Rect *deco = &(con->deco_rect);
+  int size = deco->height - 2 * pad;
   rect->x = (sign == 1) ? deco->x + pad : deco->x + deco->width - size - pad;
   rect->y = deco->y + pad;
   rect->width = size;
   rect->height = size;
 }
 
-void next_button(Rect *rect) {
+void advance_button_rect(Rect *rect) {
   int pad = logical_px(2);
   int sign = (config.title_align == ALIGN_RIGHT) ? 1 : -1;
   rect->x += sign * (rect->width + pad);

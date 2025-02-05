@@ -651,7 +651,7 @@ void x_draw_decoration(Con *con) {
         Rect rect;
         button_t *btn;
         int px = logical_px(1);
-        calculate_button_rect(con, &rect);
+        init_button_rect(con, &rect);
         TAILQ_FOREACH (btn, &(con->buttons_head), buttons) {
           draw_util_rectangle(dest_surface, p->color->border,
                               rect.x, rect.y,
@@ -665,7 +665,7 @@ void x_draw_decoration(Con *con) {
                          rect.y + (rect.height - MIN(rect.height, config.font.height)) / 2,
                          rect.width);
           buttons_width += rect.width + title_padding;
-          next_button(&rect);
+          advance_button_rect(&rect);
         }
     }
 
